@@ -147,7 +147,7 @@ public class HexagonLoadingView extends View {
       if (mInverted == 7) {
         mRemoveBackgroundFilter = true;
         mInverted--;
-        mHexagonPaintUpperRight.setColorFilter(null);
+        mHexagonPaintUpperLeft.setColorFilter(null);
       } else if (mInverted == 0) {
         mRemoveBackgroundFilter = false;
       }
@@ -177,12 +177,12 @@ public class HexagonLoadingView extends View {
     //Fill our hash set up. The order here is important as it is the order in which the
     //hexagons will be changed.
     mHexagonPaints = new LinkedHashSet<>();
+    mHexagonPaints.add(mHexagonPaintUpperLeft);
     mHexagonPaints.add(mHexagonPaintUpperRight);
     mHexagonPaints.add(mHexagonPaintMiddleRight);
     mHexagonPaints.add(mHexagonPaintLowerRight);
     mHexagonPaints.add(mHexagonPaintLowerLeft);
     mHexagonPaints.add(mHexagonPaintMiddleLeft);
-    mHexagonPaints.add(mHexagonPaintUpperLeft);
     mHexagonPaints.add(mHexagonPaintMiddleMiddle);
 
     //Initially set all hexagons to be invisible
