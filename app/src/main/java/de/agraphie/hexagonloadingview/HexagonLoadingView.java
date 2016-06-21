@@ -1,19 +1,12 @@
 package de.agraphie.hexagonloadingview;
 
 import android.content.Context;
-import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffColorFilter;
-import android.graphics.drawable.ColorDrawable;
 import android.util.AttributeSet;
-import android.util.TypedValue;
 import android.view.View;
-
-import java.util.LinkedHashSet;
 
 /**
  * Created by Agraphie on 01.06.2016.
@@ -21,6 +14,26 @@ import java.util.LinkedHashSet;
  * This class can be copied as is and used.
  */
 public class HexagonLoadingView extends View {
+  public static final int NUMBER_OF_HEXAGONS = 7;
+  /**
+   * Constants for changing the number of appearance/disappearance of the hexagons.
+   * {@link HexagonLoadingView#HEXAGON_UPPER_LEFT_APPEARANCE_POSITION} = 0 means the hexagon will
+   * start appearing in the upper left corner.
+   * {@link HexagonLoadingView#HEXAGON_MIDDLE_MIDDLE_APPEARANCE_POSITION} = 6 means this hexagon
+   * will appear last and disappear first.
+   */
+  public static final int HEXAGON_UPPER_LEFT_APPEARANCE_POSITION = 0;
+  public static final int HEXAGON_UPPER_RIGHT_APPEARANCE_POSITION = 1;
+  public static final int HEXAGON_MIDDLE_LEFT_APPEARANCE_POSITION = 5;
+  public static final int HEXAGON_MIDDLE_MIDDLE_APPEARANCE_POSITION = 6;
+  public static final int HEXAGON_MIDDLE_RIGHT_APPEARANCE_POSITION = 2;
+  public static final int HEXAGON_LOWER_RIGHT_APPEARANCE_POSITION = 3;
+  public static final int HEXAGON_LOWER_LEFT_APPEARANCE_POSITION = 4;
+  /**
+   * Increase this for a slower animation i.e. decrease this for a faster animation.
+   */
+  public static final int APPEARANCE_SPEED_COEFFICIENT = 20;
+
   /**
    * The radius of each hexagon.
    */
@@ -54,44 +67,13 @@ public class HexagonLoadingView extends View {
   private Paint mHexagonPaintMiddleMiddle = new Paint();
 
   /**
-   * {@link LinkedHashSet} for storing the hexagon paints so they can be changed at every iteration.
-   * The order is important in which the hexagons get inserted.
-   */
-  private LinkedHashSet<Paint> mHexagonPaints = new LinkedHashSet<>();
-
-  /**
-   * Count of how many hexagon objects do not have the background colour.
-   */
-  private int mInverted = 7;
-
-  /**
    * Field for identifying if hexagons should be currently set to the background colour or to their
    * given colour.
    */
-  private boolean mRemoveBackgroundFilter;
+  private boolean displayHexagons = true;
 
-  /**
-   * Necessary objects for determining the background colour of the current view.
-   */
-  private int mBackgroundColour;
-  private ColorDrawable mBackgroundColourDrawable = (ColorDrawable) this.getBackground();
-  private TypedValue mTypedValue = new TypedValue();
-  private Resources.Theme mAppTheme = getContext().getTheme();
-
-  /**
-   * The animation time i.e. how long the invalidation of the view will be delayed.
-   */
-  private long mAnimationTime = 300;
-
-  /**
-   * Using this so that on first load the hexagons are invisible. Afterwards the normal cycle commences.
-   */
-  private boolean mFirstLoad = true;
-
-  /**
-   * Filter for setting the hexagons to the background colour.
-   */
-  private PorterDuffColorFilter mBackgroundColourFilter = new PorterDuffColorFilter(mBackgroundColour, PorterDuff.Mode.MULTIPLY);
+  private float mRadiusStep;
+  private float[] mHexagonRadius;
 
   public HexagonLoadingView(Context context) {
     super(context);
@@ -106,52 +88,43 @@ public class HexagonLoadingView extends View {
   }
 
   /**
-   * Initialise all hexagons which will make up our big hexagon.
+   * Method for calculating the hexagons, taking into account the current radius of the specified hexagon.
    */
   private void calculateHexagons() {
-    mHexagonUpperLeft = calculatePath((int) -(mRadius), (int) -(mRadius * 1.7));
-    mHexagonUpperRight = calculatePath((int) (mRadius), ((int) -(mRadius * 1.7)));
-    mHexagonMiddleLeft = calculatePath((int) (-1.95 * mRadius), 0);
-    mHexagonMiddleMiddle = calculatePath(0, 0);
-    mHexagonMiddleRight = calculatePath((int) (1.95 * mRadius), 0);
-    mHexagonLowerLeft = calculatePath((int) -(mRadius), (int) (mRadius * 1.7));
-    mHexagonLowerRight = calculatePath((int) (mRadius), (int) (mRadius * 1.7));
+    mHexagonUpperLeft = calculatePath((int) -(mRadius), (int) -(mRadius * 1.7), mHexagonRadius[HEXAGON_UPPER_LEFT_APPEARANCE_POSITION]);
+    mHexagonUpperRight = calculatePath((int) (mRadius), ((int) -(mRadius * 1.7)), mHexagonRadius[HEXAGON_UPPER_RIGHT_APPEARANCE_POSITION]);
+    mHexagonMiddleLeft = calculatePath((int) (-1.95 * mRadius), 0, mHexagonRadius[HEXAGON_MIDDLE_LEFT_APPEARANCE_POSITION]);
+    mHexagonMiddleMiddle = calculatePath(0, 0, mHexagonRadius[HEXAGON_MIDDLE_MIDDLE_APPEARANCE_POSITION]);
+    mHexagonMiddleRight = calculatePath((int) (1.95 * mRadius), 0, mHexagonRadius[HEXAGON_MIDDLE_RIGHT_APPEARANCE_POSITION]);
+    mHexagonLowerLeft = calculatePath((int) -(mRadius), (int) (mRadius * 1.7), mHexagonRadius[HEXAGON_LOWER_LEFT_APPEARANCE_POSITION]);
+    mHexagonLowerRight = calculatePath((int) (mRadius), (int) (mRadius * 1.7), mHexagonRadius[HEXAGON_LOWER_RIGHT_APPEARANCE_POSITION]);
   }
 
   @Override
   public void onDraw(Canvas c) {
     //Check if this is the first load, if so don't do anything and display only the background
     //for a while
-    if (!mFirstLoad) {
-      //Count the hexagons up i.e. down
-      if (!mRemoveBackgroundFilter) {
-        for (Paint paint : mHexagonPaints) {
-          if (paint.getColorFilter() == null) {
-            paint.setColorFilter(mBackgroundColourFilter);
-            mInverted++;
-            break;
-          }
-        }
-      } else {
-        for (Paint paint : mHexagonPaints) {
-          if (paint.getColorFilter() != null) {
-            paint.setColorFilter(null);
-            mInverted--;
-            break;
-          }
+    calculateHexagons();
+
+    //Count the hexagons up i.e. down i.e. make them appear or disappear.
+    //Increase always only one hexagon at a time which has not been fully drawn yet.
+    if (displayHexagons) {
+      for (int i = 0; i < mHexagonRadius.length; i++) {
+        if (mHexagonRadius[i] < mRadius) {
+          mHexagonRadius[i] += mRadiusStep;
+          break;
         }
       }
-
-      //if we inverted all hexagons, set the upper right one immediately to be visible
-      //and start from the beginning
-      if (mInverted == 7) {
-        mRemoveBackgroundFilter = true;
-        mInverted--;
-        mHexagonPaintUpperLeft.setColorFilter(null);
-      } else if (mInverted == 0) {
-        mRemoveBackgroundFilter = false;
+    } else {
+      for (int i = 0; i < mHexagonRadius.length; i++) {
+        if (mHexagonRadius[i] > 0) {
+          mHexagonRadius[i] += (mRadiusStep * -1);
+          break;
+        }
       }
     }
+
+    checkDrawingMode();
 
     //Now draw our hexagons
     c.drawPath(mHexagonUpperLeft, mHexagonPaintUpperLeft);
@@ -161,36 +134,38 @@ public class HexagonLoadingView extends View {
     c.drawPath(mHexagonLowerLeft, mHexagonPaintLowerLeft);
     c.drawPath(mHexagonMiddleLeft, mHexagonPaintMiddleLeft);
     c.drawPath(mHexagonMiddleMiddle, mHexagonPaintMiddleMiddle);
-
-    //invalidate our view after a specific time to create an animation
-    postInvalidateDelayed(mAnimationTime);
-
-    //Displaying only the background for a while is not needed anymore
-    mFirstLoad = false;
   }
 
+  /**
+   * Method for checking if the hexagons should appear or disappear.
+   * If the sum of the array equals the target radius * {@link HexagonLoadingView#NUMBER_OF_HEXAGONS},
+   * then we need to set to mode to disappearing.
+   * If the sum equals 0, we need to make the hexagons appear (as they are all gone).
+   */
+  private void checkDrawingMode() {
+    int sum = 0;
+    for (float i : mHexagonRadius) {
+      sum += i;
+    }
+    if (sum == NUMBER_OF_HEXAGONS * mRadius) {
+      displayHexagons = false;
+    } else if (sum == 0) {
+      displayHexagons = true;
+    }
+  }
 
   @Override
   protected void onAttachedToWindow() {
     super.onAttachedToWindow();
 
-    //Fill our hash set up. The order here is important as it is the order in which the
-    //hexagons will be changed.
-    mHexagonPaints = new LinkedHashSet<>();
-    mHexagonPaints.add(mHexagonPaintUpperLeft);
-    mHexagonPaints.add(mHexagonPaintUpperRight);
-    mHexagonPaints.add(mHexagonPaintMiddleRight);
-    mHexagonPaints.add(mHexagonPaintLowerRight);
-    mHexagonPaints.add(mHexagonPaintLowerLeft);
-    mHexagonPaints.add(mHexagonPaintMiddleLeft);
-    mHexagonPaints.add(mHexagonPaintMiddleMiddle);
-
-    //Initially set all hexagons to be invisible
-    for (Paint paint : mHexagonPaints) {
-      if (paint.getColorFilter() == null) {
-        paint.setColorFilter(mBackgroundColourFilter);
-      }
-    }
+    mHexagonRadius = new float[NUMBER_OF_HEXAGONS];
+    mHexagonRadius[HEXAGON_UPPER_LEFT_APPEARANCE_POSITION] = 0;
+    mHexagonRadius[HEXAGON_UPPER_RIGHT_APPEARANCE_POSITION] = 0;
+    mHexagonRadius[HEXAGON_MIDDLE_RIGHT_APPEARANCE_POSITION] = 0;
+    mHexagonRadius[HEXAGON_LOWER_RIGHT_APPEARANCE_POSITION] = 0;
+    mHexagonRadius[HEXAGON_LOWER_LEFT_APPEARANCE_POSITION] = 0;
+    mHexagonRadius[HEXAGON_MIDDLE_LEFT_APPEARANCE_POSITION] = 0;
+    mHexagonRadius[HEXAGON_MIDDLE_MIDDLE_APPEARANCE_POSITION] = 0;
   }
 
   @Override
@@ -199,13 +174,7 @@ public class HexagonLoadingView extends View {
     mWidth = MeasureSpec.getSize(widthMeasureSpec);
     mHeight = MeasureSpec.getSize(heightMeasureSpec);
     mRadius = mHeight / 6;
-    calculateHexagons();
-    if (mBackgroundColourDrawable != null) {
-      mBackgroundColour = mBackgroundColourDrawable.getColor();
-    } else {
-      mAppTheme.resolveAttribute(R.attr.color, mTypedValue, true);
-      mBackgroundColour = mTypedValue.data;
-    }
+    mRadiusStep = mRadius / APPEARANCE_SPEED_COEFFICIENT;
   }
 
 
@@ -216,19 +185,19 @@ public class HexagonLoadingView extends View {
    * @param yCenterScale The offset in the y direction.
    * @return The calculated hexagon as {@link Path} object.
    */
-  private Path calculatePath(int xCenterScale, int yCenterScale) {
-    float triangleHeight = (float) (Math.sqrt(3) * mRadius / 2);
+  private Path calculatePath(int xCenterScale, int yCenterScale, float radius) {
+    float triangleHeight = (float) (Math.sqrt(3) * radius / 2);
     float centerX = (mWidth / 2) + xCenterScale;
     float centerY = (mHeight / 2) + yCenterScale;
     Path hexagonPath = new Path();
 
-    hexagonPath.moveTo(centerX, centerY + mRadius);
-    hexagonPath.lineTo(centerX - triangleHeight, centerY + mRadius / 2);
-    hexagonPath.lineTo(centerX - triangleHeight, centerY - mRadius / 2);
-    hexagonPath.lineTo(centerX, centerY - mRadius);
-    hexagonPath.lineTo(centerX + triangleHeight, centerY - mRadius / 2);
-    hexagonPath.lineTo(centerX + triangleHeight, centerY + mRadius / 2);
-    hexagonPath.moveTo(centerX, centerY + mRadius);
+    hexagonPath.moveTo(centerX, centerY + radius);
+    hexagonPath.lineTo(centerX - triangleHeight, centerY + radius / 2);
+    hexagonPath.lineTo(centerX - triangleHeight, centerY - radius / 2);
+    hexagonPath.lineTo(centerX, centerY - radius);
+    hexagonPath.lineTo(centerX + triangleHeight, centerY - radius / 2);
+    hexagonPath.lineTo(centerX + triangleHeight, centerY + radius / 2);
+    hexagonPath.moveTo(centerX, centerY + radius);
 
     invalidate();
 
