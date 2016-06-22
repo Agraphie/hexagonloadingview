@@ -108,23 +108,27 @@ public class HexagonLoadingView extends View {
 
     //Count the hexagons up i.e. down i.e. make them appear or disappear.
     //Increase always only one hexagon at a time which has not been fully drawn yet.
+    //Also check which hexagons have been completed.
+    int completedHexagons = 0;
     if (displayHexagons) {
       for (int i = 0; i < mHexagonRadius.length; i++) {
         if (mHexagonRadius[i] < mRadius) {
           mHexagonRadius[i] += mRadiusStep;
           break;
         }
+        completedHexagons++;
       }
     } else {
       for (int i = 0; i < mHexagonRadius.length; i++) {
         if (mHexagonRadius[i] > 0) {
-          mHexagonRadius[i] += (mRadiusStep * -1);
+          mHexagonRadius[i] = (mHexagonRadius[i] + (mRadiusStep * -1) < 0) ? 0 : mHexagonRadius[i] + (mRadiusStep * -1);
           break;
         }
+        completedHexagons++;
       }
     }
 
-    checkDrawingMode();
+    checkDrawingMode(completedHexagons);
 
     //Now draw our hexagons
     c.drawPath(mHexagonUpperLeft, mHexagonPaintUpperLeft);
@@ -137,20 +141,13 @@ public class HexagonLoadingView extends View {
   }
 
   /**
-   * Method for checking if the hexagons should appear or disappear.
-   * If the sum of the array equals the target radius * {@link HexagonLoadingView#NUMBER_OF_HEXAGONS},
-   * then we need to set to mode to disappearing.
-   * If the sum equals 0, we need to make the hexagons appear (as they are all gone).
+   * Method for checking how many hexagons are completed in their drawing.
+   * If all hexagons are completed (i.e. all appeared or disappeared), invert the drawing mode
+   * to the opposite of what it was.
    */
-  private void checkDrawingMode() {
-    int sum = 0;
-    for (float i : mHexagonRadius) {
-      sum += i;
-    }
-    if (sum == NUMBER_OF_HEXAGONS * mRadius) {
-      displayHexagons = false;
-    } else if (sum == 0) {
-      displayHexagons = true;
+  private void checkDrawingMode(int completedHexagons) {
+    if (completedHexagons == NUMBER_OF_HEXAGONS) {
+      displayHexagons = !displayHexagons;
     }
   }
 
