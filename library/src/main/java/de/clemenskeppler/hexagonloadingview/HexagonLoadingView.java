@@ -1,4 +1,4 @@
-package de.agraphie.hexagonloadingview;
+package de.clemenskeppler.hexagonloadingview;
 
 import android.content.Context;
 import android.graphics.Canvas;

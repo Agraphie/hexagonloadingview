@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:background="#123ffb">
 
-    <de.agraphie.hexagonloadingview.HexagonLoadingView
+    <de.clemenskeppler.hexagonloadingview.HexagonLoadingView
         android:layout_centerInParent="true"
         android:layout_width="100dp"
         android:layout_height="100dp"

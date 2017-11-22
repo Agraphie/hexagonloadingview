@@ -1,6 +1,5 @@
 # Built application files
 *.apk
-*.ap_
 
 # Files for the Dalvik VM
 *.dex
@@ -32,3 +31,8 @@ proguard/
 captures/
 
 .idea
+app/app.iml
+gradle/
+library/library.iml
+library/libs/
+library/src/main/res/drawable/
