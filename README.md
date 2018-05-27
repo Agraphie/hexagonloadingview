@@ -1,7 +1,7 @@
 # HexagonLoadingView
 This is a library which was influenced by the loading/prograss bar in Overwatch.
 
-![](/art/loading.gif =250x)
+![](/art/loading.gif){:height="960px" width="540px"}
 
 # Usage
 If you want to use this, you can simple copy the class [HexagonLoadingView](https://github.com/Agraphie/hexagonloadingview/blob/master/library/src/main/java/de/clemenskeppler/hexagonloadingview/HexagonLoadingView.java)
